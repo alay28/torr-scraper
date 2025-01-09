@@ -10,16 +10,31 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 def setup_selenium(headless=True):
-    """Sets up the Selenium WebDriver with optional headless mode."""
-    options = Options()
+    options = webdriver.ChromeOptions()
+    
+    # Run Chrome in headless mode (important for servers)
     if headless:
         options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
+    
+    # Required arguments for running in Render environment
     options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1920,1080")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    options.add_argument("--disable-dev-shm-usage")
+
+    # Specify Chrome binary path
+    options.binary_location = "/usr/bin/google-chrome-stable"
+
+    # Install Chromedriver
+    service = Service(ChromeDriverManager().install())
+
+    # Start Selenium driver
+    driver = webdriver.Chrome(service=service, options=options)
     return driver
+
 
 
 def perform_search(driver, base_url, search_query):
