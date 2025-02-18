@@ -1,11 +1,15 @@
+import random
+import requests
+import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from scraper import fetch_magnet_links
-import requests
-import time
 
 # TVmaze API Base URL
 TVMAZE_API_BASE = "https://api.tvmaze.com"
+
+# Meme URL
+meme_url = "https://indianmemetemplates.com/wp-content/uploads/ruko-zara-sabar-karo.jpg"
 
 # Start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -36,26 +40,37 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if search_type == "movie":
         await handle_movie_search(update, user_input)
     elif search_type == "series":
-        await handle_series_search(update, user_input,context)
+        await handle_series_search(update, user_input, context)
     else:
         await update.message.reply_text("Please select Movie or Series first using /start.")
 
+# Function to send the meme during search
+async def send_meme(update: Update) -> None:
+    await update.message.reply_photo(meme_url, caption="Ruko Zara... Sabar Karo! Searching for your request...")
+
 # Handle movie search
 async def handle_movie_search(update: Update, movie_name: str) -> None:
+    # Send meme first
+
+    # Start actual search
     start_time = time.time()
+    await send_meme(update)
     magnet_link = fetch_magnet_links(movie_name)
     end_time = time.time()
 
     total_time = end_time - start_time
     if magnet_link:
-        await update.message.reply_text(
-            f"Magnet link retrieved successfully:\n\n{magnet_link}\n\nExecution time: {total_time:.2f} seconds"
-        )
+        await update.message.reply_text(f"Magnet link retrieved successfully:\n\n{magnet_link}")
+        await update.message.reply_text(f"Execution time: {total_time:.2f} seconds")
     else:
-        await update.message.reply_text(f"Failed to retrieve a magnet link for '{movie_name}'.\nExecution time: {total_time:.2f} seconds")
+        await update.message.reply_text(f"Failed to retrieve a magnet link for '{movie_name}'.")
+        await update.message.reply_text(f"Execution time: {total_time:.2f} seconds")
 
 # Handle series search
-async def handle_series_search(update: Update, series_name: str,context:ContextTypes.DEFAULT_TYPE) -> None:
+async def handle_series_search(update: Update, series_name: str, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Send meme first
+
+    # Start actual search
     user_input = update.message.text
     context.user_data["series_name"] = user_input
     response = requests.get(f"{TVMAZE_API_BASE}/search/shows?q={series_name}")
@@ -94,11 +109,11 @@ async def handle_season_selection(update: Update, context: ContextTypes.DEFAULT_
 
         # Create buttons for each episode
         episode_buttons = [
-        [InlineKeyboardButton(f"{episode['number']}. {episode['name']}", callback_data=f"episode_{episode['id']}")]
+            [InlineKeyboardButton(f"{episode['number']}. {episode['name']}", callback_data=f"episode_{episode['id']}")]
             for episode in episodes
         ]
 
-# Combine the buttons
+        # Combine the buttons
         keyboard = [download_button] + episode_buttons
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text("Select an episode or download the entire season:", reply_markup=reply_markup)
@@ -126,19 +141,17 @@ async def handle_entire_season_download(update: Update, context: ContextTypes.DE
 
         # Fetch magnet link for the entire season
         start_time = time.time()
+        await send_meme(update)
+
         magnet_link = fetch_magnet_links(search_query, season_number=season_number)
         end_time = time.time()
 
         total_time = end_time - start_time
         if magnet_link:
-            await query.message.reply_text(
-                f"Magnet link retrieved successfully:\n\n{magnet_link}"
-            )
+            await query.message.reply_text(f"Magnet link retrieved successfully:\n\n{magnet_link}")
             await query.message.reply_text(f"Execution time: {total_time:.2f} seconds")
         else:
-            await query.message.reply_text(
-                f"Failed to retrieve a magnet link for '{search_query}'."
-            )
+            await query.message.reply_text(f"Failed to retrieve a magnet link for '{search_query}'.")
             await query.message.reply_text(f"Execution time: {total_time:.2f} seconds")
     else:
         await query.edit_message_text("Failed to fetch season details. Please try again.")
@@ -177,16 +190,17 @@ async def handle_quality_selection(update: Update, context: ContextTypes.DEFAULT
 
     search_query_with_quality = f"{search_query} {quality}"
     start_time = time.time()
+    await send_meme(update)
     magnet_link = fetch_magnet_links(search_query_with_quality)
     end_time = time.time()
 
     total_time = end_time - start_time
     if magnet_link:
-        await query.edit_message_text(
-            f"Magnet link retrieved successfully for {quality}:\n\n{magnet_link}\n\nExecution time: {total_time:.2f} seconds"
-        )
+        await query.message.reply_text(f"{magnet_link}")
+        await query.message.reply_text(f"Execution time: {total_time:.2f} seconds")
     else:
-        await query.edit_message_text(f"Failed to retrieve a magnet link for '{search_query_with_quality}'.\nExecution time: {total_time:.2f} seconds")
+        await query.message.reply_text(f"Failed to retrieve a magnet link for '{search_query_with_quality}'.")
+        await query.message.reply_text(f"Execution time: {total_time:.2f} seconds")
 
 # Main function to set up the bot
 def main():

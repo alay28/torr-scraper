@@ -9,32 +9,20 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
+import diskcache  # Import diskcache for persistent caching
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-
+# Initialize cache
+cache = diskcache.Cache('cache') 
 def setup_selenium(headless=True):
-    options = webdriver.ChromeOptions()
-    
-    # Run Chrome in headless mode (important for servers)
+    """Sets up the Selenium WebDriver with optional headless mode."""
+    options = Options()
     if headless:
         options.add_argument("--headless")
-    
-    # Required arguments for running in Render environment
+    options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    # Specify Chrome binary path
-    options.binary_location = "/usr/bin/google-chrome-stable"
-
-    # Install Chromedriver
-    service = Service(ChromeDriverManager().install())
-
-    # Start Selenium driver
-    driver = webdriver.Chrome(service=service, options=options)
+    options.add_argument("--window-size=1920,1080")
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     return driver
-
 
 
 def perform_search(driver, base_url, search_query):
@@ -111,7 +99,14 @@ def extract_magnet_link(driver):
 
 
 def fetch_magnet_links(search_query, base_url="https://1337x-to-1.pages.dev/", return_all=False, season_number=None):
-    """Main function to fetch magnet links using Selenium."""
+    """Main function to fetch magnet links using Selenium with persistent caching."""
+    
+    # Check cache first
+    cached_magnet_link = cache.get(search_query)  # Check if result is already cached
+    if cached_magnet_link:
+        print("Returning cached magnet link.")
+        return cached_magnet_link
+
     driver = setup_selenium(headless=True)
     try:
         # Step 1: Perform search and navigate to results
@@ -158,9 +153,14 @@ def fetch_magnet_links(search_query, base_url="https://1337x-to-1.pages.dev/", r
             print(f"Magnet link: {magnet_link}")
         else:
             print("No magnet link found on the page.")
+        
+        # Cache the result for future use
+        cache.set(search_query, magnet_link, expire=864000)  # Cache for 24 hours (86400 seconds)
+
         return magnet_link
     finally:
         driver.quit()
+
 
 
 
