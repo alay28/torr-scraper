@@ -45,9 +45,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("Please select Movie or Series first using /start.")
 
 # Function to send the meme during search
-async def send_meme(update: Update) -> None:
-    await update.message.reply_photo(meme_url, caption="Ruko Zara... Sabar Karo! Searching for your request...")
-
+async def send_meme(update: Update):
+    # Ensure that the update contains a valid message
+    if update.message:
+        meme_url = "https://example.com/meme.jpg"  # Replace with your actual meme URL
+        await update.message.reply_photo(meme_url, caption="Ruko Zara... Sabar Karo! Searching for your request...")
+    else:
+        # Log or handle the case where update.message is None
+        print(f"Update does not contain a message: {update}")
+        
 # Handle movie search
 async def handle_movie_search(update: Update, movie_name: str) -> None:
     # Send meme first
